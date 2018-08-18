@@ -112,3 +112,16 @@ fn main() {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn conf_test_default() {
+        assert_eq!(super::conf("A", "B"), String::from("B"))
+    }
+
+    #[test]
+    fn conf_test_found() {
+        assert_eq!(super::conf("SHELL", "B"), String::from("/bin/bash"))
+    }
+}

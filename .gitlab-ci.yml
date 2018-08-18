@@ -3,4 +3,4 @@
 build:
   image: rust:latest
   script:
-    - cargo build
+    - cargo test
