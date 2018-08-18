@@ -3,4 +3,4 @@
 build:
   image: rust:latest
   script:
-    - cargo test
+    - SHELL=/bin/bash cargo test
