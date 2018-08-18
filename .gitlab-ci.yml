@@ -1,6 +1,7 @@
 ---
 
-build:
+latest:
   image: rust:latest
+  stage: test
   script:
     - SHELL=/bin/bash cargo test
