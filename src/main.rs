@@ -16,7 +16,7 @@ fn read(stream: &mut BufStream<TcpStream>) -> String {
 
 fn handle_connection(stream: &mut BufStream<TcpStream>,
                      from: std::net::SocketAddr,
-                     _commands: String,
+                     _whitelist: std::vec::Vec<String>,
                      _insecure: String,
                      _prefix: String) {
 
@@ -81,6 +81,14 @@ fn conf(var: &str, default: &str) -> String {
     env::var(var).unwrap_or(String::from(default))
 }
 
+fn parse_command(cmd: String) -> Vec<String> {
+    let mut v = Vec::new();
+    for c in cmd.split(",") {
+        v.push(String::from(c));
+    }
+    v
+}
+
 fn main() {
     // Read configuration from environment
     let listen_addr = conf("LISTEN", "localhost");
@@ -88,6 +96,9 @@ fn main() {
     let commands = conf("COMMANDS", "make,make check");
     let insecure = conf("INSECURE", "0");
     let prefix = conf("PREFIX", "");
+
+    let command_whitelist = parse_command(commands.clone());
+    println!("COMMAND WHITELIST: {:?}", command_whitelist);
 
     let listener = match TcpListener::bind(format!("{}:{}", listen_addr, listen_port)) {
         Ok(l) => l,
@@ -98,7 +109,7 @@ fn main() {
         match stream {
             Ok(mut stream) => {
                 let from = stream.peer_addr().unwrap().clone();
-                let c = commands.clone();
+                let c = command_whitelist.clone();
                 let i = insecure.clone();
                 let p = prefix.clone();
                 println!("Connection from {}", from);
@@ -123,5 +134,15 @@ mod tests {
     #[test]
     fn conf_test_found() {
         assert_eq!(super::conf("SHELL", "B"), String::from("/bin/bash"))
+    }
+
+    #[test]
+    fn parse_command() {
+        let cmd = String::from("a,b c,d");
+        let mut v = Vec::new();
+        v.push(String::from("a"));
+        v.push(String::from("b c"));
+        v.push(String::from("d"));
+        assert_eq!(super::parse_command(cmd), v)
     }
 }
