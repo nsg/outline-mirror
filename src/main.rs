@@ -28,7 +28,7 @@ fn handle_connection(stream: &mut BufStream<TcpStream>,
                      token: String,
                      whitelist: std::vec::Vec<String>,
                      insecure: String,
-                     _prefix: String) {
+                     prefix: String) {
 
     let test_token = read(stream);
 
@@ -39,7 +39,7 @@ fn handle_connection(stream: &mut BufStream<TcpStream>,
 
     let _clone_repo = read(stream);
     let _repo_commit = read(stream);
-    let command = read(stream);
+    let command = String::from(format!("{} {}", prefix, read(stream)).trim());
 
     if !whitelist.contains(&command) && insecure == "0" {
         writeln(stream, "Incorrect COMMAND");
