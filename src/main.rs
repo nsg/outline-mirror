@@ -14,24 +14,42 @@ fn read(stream: &mut BufStream<TcpStream>) -> String {
     String::from(reads.trim())
 }
 
+fn write(stream: &mut BufStream<TcpStream>, msg: &str) {
+    stream.write(msg.as_bytes()).expect("Unable to write to socker!");
+    stream.flush().expect("Unable to flush the socket!")
+}
+
+fn writeln(stream: &mut BufStream<TcpStream>, msg: &str) {
+    write(stream, format!("{}\n", msg).as_str());
+}
+
 fn handle_connection(stream: &mut BufStream<TcpStream>,
                      from: std::net::SocketAddr,
-                     _whitelist: std::vec::Vec<String>,
-                     _insecure: String,
+                     token: String,
+                     whitelist: std::vec::Vec<String>,
+                     insecure: String,
                      _prefix: String) {
 
-    stream.write(b"You are connected to Outline, you should know what to do\n").unwrap();
-    stream.flush().unwrap();
+    let test_token = read(stream);
 
-    let clone_repo = read(stream);
-    let repo_commit = read(stream);
-    let run_command = read(stream);
+    if token.ne(&test_token) {
+        writeln(stream, "Incorrent TOKEN");
+        return
+    }
 
-    println!("[{}] REPO: {}", from, clone_repo);
-    println!("[{}] COMMIT: {}", from, repo_commit);
-    println!("[{}] COMMAND: {}", from, run_command);
+    let _clone_repo = read(stream);
+    let _repo_commit = read(stream);
+    let command = read(stream);
 
-    let mut child = Command::new("/tmp/bar")
+    if !whitelist.contains(&command) && insecure == "0" {
+        writeln(stream, "Incorrect COMMAND");
+        return
+    }
+
+    let mut args: Vec<&str> = command.split(" ").collect();
+
+    let mut child = Command::new(args.first().unwrap())
+        .args(args.split_off(1))
         .env_clear()
         .current_dir("/tmp")
         .stdout(Stdio::piped())
@@ -96,6 +114,7 @@ fn main() {
     let commands = conf("COMMANDS", "make,make check");
     let insecure = conf("INSECURE", "0");
     let prefix = conf("PREFIX", "");
+    let token = conf("TOKEN", "insecure");
 
     let command_whitelist = parse_command(commands.clone());
     println!("COMMAND WHITELIST: {:?}", command_whitelist);
@@ -112,10 +131,11 @@ fn main() {
                 let c = command_whitelist.clone();
                 let i = insecure.clone();
                 let p = prefix.clone();
+                let t = token.clone();
                 println!("Connection from {}", from);
                 spawn(move|| {
                     let mut stream = BufStream::new(stream);
-                    handle_connection(&mut stream, from, c, i, p);
+                    handle_connection(&mut stream, from, t, c, i, p);
                     println!("Close connection from {}", from);
                 });
             },

@@ -33,6 +33,7 @@ You can't specify artitary commands, there is a whitelist.
 Outline listend to `$HOST:$PORT` with will default to localhost:8080 by default.
 It expect you to open a TCP connection and send the following commands in order:
 
+* The secret token
 * URL of the repository to clone
 * Commit hash to checkout
 * The command to execute
@@ -40,6 +41,7 @@ It expect you to open a TCP connection and send the following commands in order:
 An example of this is:
 
 ```
+BokujEajeinsenocyogawJeurpechyruIthhuWymGudBynHocCemsUttaykkavDy
 git.example.com/repo.git
 423a975db97a42823e0d6c730d675390a1c785b4
 make
@@ -48,7 +50,11 @@ make
 From this point forward outline will ignore all input, stdout and stderr will be streamed back to you. Outline is simple to call from your existing CI system with for example the `nc` command.
 
 ```sh
-echo -e "git.example.com/repo.git\n423a9...785b4\nmake" | nc localhost 8080
+TOKEN=BokujEajeinsenocyogawJeurpechyruIthhuWymGudBynHocCemsUttaykkavDy
+REPO=git.example.com/repo.git
+COMMIT=423a975db97a42823e0d6c730d675390a1c785b4
+COMMAND=make
+echo -e "$TOKEN\n$REPO\n$COMMIT\n$COMMAND" | nc localhost 8080
 ```
 
 ## The service
@@ -60,5 +66,6 @@ Run the service in your prefered way, it's configured from the environment.
 * `COMMANDS` A comma separated list of allowed commands, it's defaults to `make,make check`
 * `INSECURE` Set this to `1` to disable both GPG and the command whitelist. Only use this for debug. It defaults to `0`.
 * `PREFIX` Prefix all commands, this can be useful if you like to run commands inside containers. Defaults to empty string.
+* `TOKEN` A shared secret
 
 Configure your local git installation to trust your signed commits.
