@@ -33,17 +33,21 @@ fn handle_connection(stream: &mut BufStream<TcpStream>,
     let test_token = read(stream);
 
     if token.ne(&test_token) {
+        println!("Incorrect TOKEN, I will close the connection.");
         writeln(stream, "Incorrent TOKEN");
         return
     }
 
     let _clone_repo = read(stream);
     let _repo_commit = read(stream);
-        writeln(stream, "Incorrect COMMAND");
     let command_no_prefix = String::from(read(stream).trim());
     let command = String::from(format!("{} {}", prefix, command_no_prefix));
 
     if !whitelist.contains(&command_no_prefix) && insecure == "0" {
+        println!("Incorrect command \"{}\", I will close the connection.",
+                 command_no_prefix);
+        writeln(stream, format!("\"{}\" is not an valid command",
+                command_no_prefix).as_str());
         return
     }
 
