@@ -117,7 +117,20 @@ fn main() {
     let token = conf("TOKEN", "insecure");
 
     let command_whitelist = parse_command(commands.clone());
-    println!("COMMAND WHITELIST: {:?}", command_whitelist);
+
+    // Print startup messages
+    println!("Welcome to Outline");
+    println!("I will listen on {}, port {}", listen_addr, listen_port);
+    println!("Allowed commands: {:?}", command_whitelist);
+    if insecure.ne("0") {
+        println!("WARNING! Insecure mode enabled, only use this for debug.");
+    }
+    if token.eq("insecure") {
+        println!("WARNING! An insecure default token is set.");
+    }
+    if prefix.ne("") {
+        println!("All commands will be prefixed with \"{}\"", prefix);
+    }
 
     let listener = match TcpListener::bind(format!("{}:{}", listen_addr, listen_port)) {
         Ok(l) => l,
