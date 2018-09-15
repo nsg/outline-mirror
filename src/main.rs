@@ -1,4 +1,5 @@
 extern crate bufstream;
+extern crate regex;
 
 use std::io::Write;
 use std::net::{TcpListener, TcpStream};
@@ -7,6 +8,7 @@ use bufstream::BufStream;
 use std::env;
 use std::process::{Command,Stdio};
 use std::io::{BufReader,BufRead};
+use regex::Regex;
 
 fn read(stream: &mut BufStream<TcpStream>) -> String {
     let mut reads = String::new();
@@ -38,8 +40,8 @@ fn handle_connection(stream: &mut BufStream<TcpStream>,
         return
     }
 
-    let _clone_repo = read(stream);
-    let _repo_commit = read(stream);
+    let repo_path = read(stream);
+    let repo_commit = read(stream);
     let command_no_prefix = String::from(read(stream).trim());
     let command = String::from(format!("{} {}", prefix, command_no_prefix));
 
@@ -51,6 +53,23 @@ fn handle_connection(stream: &mut BufStream<TcpStream>,
         return
     }
 
+    let sha1hash = Regex::new(r"^[a-f0-9]{40}$").unwrap();
+    if !sha1hash.is_match(repo_commit.trim()) {
+        println!("Invalid hash specified, close the connection.");
+        println!("{}", repo_commit.trim());
+        writeln(stream, "You need to specify a full sha1 commit hash matching a-z0-9");
+        return
+    }
+
+    let cloneurl_regexp =
+        r"^((git|ssh|http(s)?)|(git@[\w\.]+))(:(//)?)([\w\.@:/\-~]+)(\.git)(/)?$";
+    let cloneurl = Regex::new(cloneurl_regexp).unwrap();
+    if !cloneurl.is_match(repo_path.trim()) {
+        println!("Invalid repo url, close the connection.");
+        println!("{}", repo_path.trim());
+        writeln(stream, "Unsupported clone url format.");
+        return
+    }
     let mut args: Vec<&str> = command.split(" ").collect();
 
     let mut child = Command::new(args.first().unwrap())
