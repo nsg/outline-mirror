@@ -39,10 +39,11 @@ fn handle_connection(stream: &mut BufStream<TcpStream>,
 
     let _clone_repo = read(stream);
     let _repo_commit = read(stream);
-    let command = String::from(format!("{} {}", prefix, read(stream)).trim());
-
-    if !whitelist.contains(&command) && insecure == "0" {
         writeln(stream, "Incorrect COMMAND");
+    let command_no_prefix = String::from(read(stream).trim());
+    let command = String::from(format!("{} {}", prefix, command_no_prefix));
+
+    if !whitelist.contains(&command_no_prefix) && insecure == "0" {
         return
     }
 
