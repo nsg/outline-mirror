@@ -5,7 +5,7 @@ use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 use std::thread::spawn;
 use bufstream::BufStream;
-use std::env;
+use std::{env, fs};
 use std::process::{Command,Stdio};
 use std::io::{BufReader,BufRead};
 use regex::Regex;
@@ -23,6 +23,49 @@ fn write(stream: &mut BufStream<TcpStream>, msg: &str) {
 
 fn writeln(stream: &mut BufStream<TcpStream>, msg: &str) {
     write(stream, format!("{}\n", msg).as_str());
+}
+
+fn clone_repo_command(command: String, cwd: &str) -> std::process::Output {
+    let mut args: Vec<&str> = command.split(" ").collect();
+
+    Command::new(args.first().unwrap())
+        .args(args.split_off(1))
+        .env_clear()
+        .current_dir(cwd)
+        .output()
+        .expect("Failed to execute process")
+}
+
+fn clone_repo(repo_path: String, repo_commit: String) {
+    let clone_to_path = "/tmp/outline_workdir";
+
+    match fs::remove_dir_all(clone_to_path) {
+        Ok(_) => println!("Remove {}", clone_to_path),
+        Err(_) => println!("{} was not there", clone_to_path),
+    }
+
+    let clone_command = format!(
+        "git clone --depth 128 --recurse-submodules \
+        --quiet --shallow-submodules \
+        {} {}", repo_path, clone_to_path);
+    let checkout_command = format!("git checkout {}", repo_commit);
+
+    {
+        println!("Execute: {}", clone_command);
+        let command = clone_repo_command(clone_command, "/tmp");
+        if !command.status.success() {
+            println!("{}", String::from_utf8_lossy(&command.stderr));
+        }
+    }
+
+    {
+        println!("Execute: {}", checkout_command);
+        let command = clone_repo_command(checkout_command, clone_to_path);
+        if !command.status.success() {
+            println!("{}", String::from_utf8_lossy(&command.stderr));
+        }
+    }
+
 }
 
 fn handle_connection(stream: &mut BufStream<TcpStream>,
@@ -70,6 +113,9 @@ fn handle_connection(stream: &mut BufStream<TcpStream>,
         writeln(stream, "Unsupported clone url format.");
         return
     }
+
+    clone_repo(repo_path, String::from(repo_commit));
+
     let mut args: Vec<&str> = command.split(" ").collect();
 
     let mut child = Command::new(args.first().unwrap())
