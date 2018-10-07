@@ -5,10 +5,12 @@ use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 use std::thread::spawn;
 use bufstream::BufStream;
-use std::{env, fs};
 use std::process::{Command,Stdio};
 use std::io::{BufReader,BufRead};
 use regex::Regex;
+
+mod git;
+mod config;
 
 fn read(stream: &mut BufStream<TcpStream>) -> String {
     let mut reads = String::new();
@@ -23,49 +25,6 @@ fn write(stream: &mut BufStream<TcpStream>, msg: &str) {
 
 fn writeln(stream: &mut BufStream<TcpStream>, msg: &str) {
     write(stream, format!("{}\n", msg).as_str());
-}
-
-fn clone_repo_command(command: String, cwd: &str) -> std::process::Output {
-    let mut args: Vec<&str> = command.split(" ").collect();
-
-    Command::new(args.first().unwrap())
-        .args(args.split_off(1))
-        .env_clear()
-        .current_dir(cwd)
-        .output()
-        .expect("Failed to execute process")
-}
-
-fn clone_repo(repo_path: String, repo_commit: String) {
-    let clone_to_path = "/tmp/outline_workdir";
-
-    match fs::remove_dir_all(clone_to_path) {
-        Ok(_) => println!("Remove {}", clone_to_path),
-        Err(_) => println!("{} was not there", clone_to_path),
-    }
-
-    let clone_command = format!(
-        "git clone --depth 128 --recurse-submodules \
-        --quiet --shallow-submodules \
-        {} {}", repo_path, clone_to_path);
-    let checkout_command = format!("git checkout {}", repo_commit);
-
-    {
-        println!("Execute: {}", clone_command);
-        let command = clone_repo_command(clone_command, "/tmp");
-        if !command.status.success() {
-            println!("{}", String::from_utf8_lossy(&command.stderr));
-        }
-    }
-
-    {
-        println!("Execute: {}", checkout_command);
-        let command = clone_repo_command(checkout_command, clone_to_path);
-        if !command.status.success() {
-            println!("{}", String::from_utf8_lossy(&command.stderr));
-        }
-    }
-
 }
 
 fn handle_connection(stream: &mut BufStream<TcpStream>,
@@ -114,7 +73,7 @@ fn handle_connection(stream: &mut BufStream<TcpStream>,
         return
     }
 
-    clone_repo(repo_path, String::from(repo_commit));
+    git::clone_repo(repo_path, String::from(repo_commit));
 
     let mut args: Vec<&str> = command.split(" ").collect();
 
@@ -165,44 +124,31 @@ fn handle_connection(stream: &mut BufStream<TcpStream>,
     }
 }
 
-fn conf(var: &str, default: &str) -> String {
-    env::var(var).unwrap_or(String::from(default))
-}
 
-fn parse_command(cmd: String) -> Vec<String> {
-    let mut v = Vec::new();
-    for c in cmd.split(",") {
-        v.push(String::from(c));
-    }
-    v
-}
+
 
 fn main() {
     // Read configuration from environment
-    let listen_addr = conf("LISTEN", "localhost");
-    let listen_port = conf("PORT", "8080");
-    let commands = conf("COMMANDS", "make,make check");
-    let insecure = conf("INSECURE", "0");
-    let prefix = conf("PREFIX", "");
-    let token = conf("TOKEN", "insecure");
-
-    let command_whitelist = parse_command(commands.clone());
+    let config = config::read_conf();
 
     // Print startup messages
     println!("Welcome to Outline");
-    println!("I will listen on {}, port {}", listen_addr, listen_port);
-    println!("Allowed commands: {:?}", command_whitelist);
-    if insecure.ne("0") {
+    println!("I will listen on {}, port {}", config.listen_addr, config.listen_port);
+    println!("Allowed commands: {:?}", config.commands);
+
+    if config.insecure.ne("0") {
         println!("WARNING! Insecure mode enabled, only use this for debug.");
     }
-    if token.eq("insecure") {
+    if config.token.eq("insecure") {
         println!("WARNING! An insecure default token is set.");
     }
-    if prefix.ne("") {
-        println!("All commands will be prefixed with \"{}\"", prefix);
+    if config.prefix.ne("") {
+        println!("All commands will be prefixed with \"{}\"", config.prefix);
     }
 
-    let listener = match TcpListener::bind(format!("{}:{}", listen_addr, listen_port)) {
+    let listener = match TcpListener::bind(format!("{}:{}",
+                                                   config.listen_addr,
+                                                   config.listen_port)) {
         Ok(l) => l,
         Err(_) => panic!("TcpListener::bind failed!"),
     };
@@ -211,10 +157,10 @@ fn main() {
         match stream {
             Ok(mut stream) => {
                 let from = stream.peer_addr().unwrap().clone();
-                let c = command_whitelist.clone();
-                let i = insecure.clone();
-                let p = prefix.clone();
-                let t = token.clone();
+                let c = config.commands.clone();
+                let i = config.insecure.clone();
+                let p = config.prefix.clone();
+                let t = config.token.clone();
                 println!("Connection from {}", from);
                 spawn(move|| {
                     let mut stream = BufStream::new(stream);
@@ -224,28 +170,5 @@ fn main() {
             },
             Err(_) => println!("Error in listener")
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn conf_test_default() {
-        assert_eq!(super::conf("A", "B"), String::from("B"))
-    }
-
-    #[test]
-    fn conf_test_found() {
-        assert_eq!(super::conf("SHELL", "B"), String::from("/bin/bash"))
-    }
-
-    #[test]
-    fn parse_command() {
-        let cmd = String::from("a,b c,d");
-        let mut v = Vec::new();
-        v.push(String::from("a"));
-        v.push(String::from("b c"));
-        v.push(String::from("d"));
-        assert_eq!(super::parse_command(cmd), v)
     }
 }
