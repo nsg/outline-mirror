@@ -1,6 +1,6 @@
-
 use std::env;
 
+#[derive(Clone)]
 pub struct Config {
     pub listen_addr: String,
     pub listen_port: String,
