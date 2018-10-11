@@ -29,14 +29,11 @@ fn writeln(stream: &mut BufStream<TcpStream>, msg: &str) {
 
 fn handle_connection(stream: &mut BufStream<TcpStream>,
                      from: std::net::SocketAddr,
-                     token: String,
-                     whitelist: std::vec::Vec<String>,
-                     insecure: String,
-                     prefix: String) {
+                     config: config::Config) {
 
     let test_token = read(stream);
 
-    if token.ne(&test_token) {
+    if config.token.ne(&test_token) {
         println!("Incorrect TOKEN, I will close the connection.");
         writeln(stream, "Incorrent TOKEN");
         return
@@ -45,9 +42,9 @@ fn handle_connection(stream: &mut BufStream<TcpStream>,
     let repo_path = read(stream);
     let repo_commit = read(stream);
     let command_no_prefix = String::from(read(stream).trim());
-    let command = String::from(format!("{} {}", prefix, command_no_prefix));
+    let command = String::from(format!("{} {}", config.prefix, command_no_prefix));
 
-    if !whitelist.contains(&command_no_prefix) && insecure == "0" {
+    if !config.commands.contains(&command_no_prefix) && config.insecure == "0" {
         println!("Incorrect command \"{}\", I will close the connection.",
                  command_no_prefix);
         writeln(stream, format!("\"{}\" is not an valid command",
@@ -124,9 +121,6 @@ fn handle_connection(stream: &mut BufStream<TcpStream>,
     }
 }
 
-
-
-
 fn main() {
     // Read configuration from environment
     let config = config::read_conf();
@@ -157,14 +151,11 @@ fn main() {
         match stream {
             Ok(mut stream) => {
                 let from = stream.peer_addr().unwrap().clone();
-                let c = config.commands.clone();
-                let i = config.insecure.clone();
-                let p = config.prefix.clone();
-                let t = config.token.clone();
                 println!("Connection from {}", from);
+                let c = config.clone();
                 spawn(move|| {
                     let mut stream = BufStream::new(stream);
-                    handle_connection(&mut stream, from, t, c, i, p);
+                    handle_connection(&mut stream, from, c);
                     println!("Close connection from {}", from);
                 });
             },
