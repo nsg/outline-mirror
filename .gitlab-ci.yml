@@ -17,4 +17,7 @@ sync:
     - ssh-keyscan github.com > ~/.ssh/known_hosts && chmod 644 ~/.ssh/known_hosts
     - ssh-add -l
     - git remote add github git@github.com:nsg/outline-mirror.git
+    - echo "# This is a mirror" > README.md
+    - echo "This is a mirror of https://gitlab.com/nsgb/outline" >> README.md
+    - git add README.md && git commit -m "Overwrite README with mirror info"
     - git push -u github master
