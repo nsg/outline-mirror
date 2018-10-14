@@ -14,3 +14,5 @@ sync:
     - eval $(ssh-agent -s)
     - echo "$SSH_DEPLOY_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - ssh-add -l
+    - git remote add github git@github.com:nsg/outline-mirror.git
+    - git push -u github master
