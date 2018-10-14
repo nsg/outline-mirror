@@ -15,13 +15,12 @@ sync:
     - echo "$SSH_DEPLOY_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - ssh-keyscan github.com > ~/.ssh/known_hosts && chmod 644 ~/.ssh/known_hosts
-    - ssh-add -l
     - git remote add github git@github.com:nsg/outline-mirror.git
     - echo "# This is a mirror" > README.md
     - echo "This is a mirror of https://gitlab.com/nsgb/outline" >> README.md
     - git config --global user.email "nsgb-ci@gitlab.local"
     - git config --global user.name "GitLab CI"
     - git add README.md && git commit -m "Overwrite README with mirror info"
-    - git push -u github master
+    - git push github master
   only:
     - master
