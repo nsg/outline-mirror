@@ -21,3 +21,5 @@ sync:
     - echo "This is a mirror of https://gitlab.com/nsgb/outline" >> README.md
     - git add README.md && git commit -m "Overwrite README with mirror info"
     - git push -u github master
+  only:
+    - master
