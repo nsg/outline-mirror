@@ -1,0 +1,20 @@
+name: outline
+version: git
+summary: Secure stopgap between a CI system and a secure production environment.
+description: |
+  The scope of the project is to create a secure stopgap between a CI system and a
+  secure production environment. This software will should prevent a bad actor from
+  stealing secrets or gaining access to the production environment by gaining access
+  to the repository or CI environment.
+
+grade: stable
+confinement: strict
+
+apps:
+  outline:
+    command: outline
+
+parts:
+  outline:
+    plugin: rust
+    source: .
