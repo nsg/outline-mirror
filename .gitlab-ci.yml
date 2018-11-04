@@ -21,6 +21,6 @@ sync:
     - git config --global user.email "nsgb-ci@gitlab.local"
     - git config --global user.name "GitLab CI"
     - git add README.md && git commit -m "Overwrite README with mirror info"
-    - git push github HEAD:master
+    - git push -f github HEAD:master
   only:
     - master
