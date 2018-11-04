@@ -1,5 +1,7 @@
 # Outline
 
+[![Snap Status](https://build.snapcraft.io/badge/nsg/outline-mirror.svg)](https://build.snapcraft.io/user/nsg/outline-mirror)
+
 The scope of the project is to create a secure stopgap between a CI system and a secure
 production environment. This software will should prevent a bad actor from stealing
 secrets or gaining access to the production environment by gaining access to the
