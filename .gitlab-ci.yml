@@ -4,7 +4,7 @@ latest:
   image: rust:latest
   stage: test
   script:
-    - SHELL=/bin/bash cargo test
+    - cargo test
 
 sync:
   image: ubuntu:18.04

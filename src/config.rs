@@ -35,6 +35,8 @@ pub fn read_conf() -> Config {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
     #[test]
     fn conf_test_default() {
         assert_eq!(super::conf("A", "B"), String::from("B"))
@@ -42,6 +44,7 @@ mod tests {
 
     #[test]
     fn conf_test_found() {
+        env::set_var("SHELL", "/bin/bash");
         assert_eq!(super::conf("SHELL", "B"), String::from("/bin/bash"))
     }
 
